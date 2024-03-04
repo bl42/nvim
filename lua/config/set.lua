@@ -1,14 +1,6 @@
 -- Set leader
-vim.g.mapleader = ' '
+vim.g.mapleader = " "
 vim.keymap.set("n", " ", "<Nop>", { silent = true, remap = false })
-
--- Global variables
-Config = {
-  theme = "material",
-  lsp = {
-    highlight = false
-  },
-}
 
 -- Tab settings
 vim.o.tabstop = 4
@@ -36,14 +28,14 @@ vim.o.pumblend = 10
 -- hightlight after yank
 local generic_augroup = vim.api.nvim_create_augroup("config_generic", { clear = true })
 vim.api.nvim_create_autocmd("TextYankPost", {
-  group = generic_augroup,
-  callback = function()
-    vim.highlight.on_yank({
-      higroup = "IncSearch",
-      timeout = 150,
-      on_visual = true
-    })
-  end
+	group = generic_augroup,
+	callback = function()
+		vim.highlight.on_yank({
+			higroup = "IncSearch",
+			timeout = 150,
+			on_visual = true,
+		})
+	end,
 })
 
 -- unhighlight after search
@@ -51,4 +43,10 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 
 -- vim.keymap.set("n", "<CR>", \[\[{-> v:hlsearch ? ":nohl\\<CR>" : "\\<CR>"}()\]\], { silent = true, expr = true })
 
+vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
+	border = "single",
+})
 
+vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
+	signs = false,
+})
