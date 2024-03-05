@@ -3,14 +3,17 @@ return {
 	dependencies = {
 		{ "williamboman/mason.nvim", opts = {} },
 		"williamboman/mason-lspconfig.nvim",
+		{ "j-hui/fidget.nvim", opts = {} },
+
+		-- TODO: move cmp into new file
 		"hrsh7th/cmp-nvim-lsp",
 		"hrsh7th/cmp-buffer",
 		"hrsh7th/cmp-path",
 		"hrsh7th/cmp-cmdline",
 		"hrsh7th/nvim-cmp",
+
 		"L3MON4D3/LuaSnip",
 		"saadparwaiz1/cmp_luasnip",
-		{ "j-hui/fidget.nvim", opts = {} },
 	},
 
 	config = function()
@@ -35,10 +38,15 @@ return {
 						capabilities = capabilities,
 					})
 				end,
-
+				["tsserver"] = function()
+					require("lspconfig").tsserver.setup({
+						on_attach = function(client)
+							client.resolved_capabilities.document_formatting = false
+						end,
+					})
+				end,
 				["lua_ls"] = function()
-					local lspconfig = require("lspconfig")
-					lspconfig.lua_ls.setup({
+					require("lspconfig").lua_ls.setup({
 						capabilities = capabilities,
 						settings = {
 							Lua = {
@@ -55,6 +63,15 @@ return {
 		local cmp_select = { behavior = cmp.SelectBehavior.Select }
 
 		cmp.setup({
+			window = {
+				completion = { -- rounded border; thin-style scrollbar
+					border = "single",
+				},
+				documentation = { -- no border; native-style scrollbar
+					border = "single",
+					-- other options
+				},
+			},
 			snippet = {
 				expand = function(args)
 					require("luasnip").lsp_expand(args.body) -- For `luasnip` users.
@@ -87,14 +104,8 @@ return {
 		})
 
 		vim.api.nvim_create_autocmd("LspAttach", {
-			group = vim.api.nvim_create_augroup("kickstart-lsp-attach", { clear = true }),
+			group = vim.api.nvim_create_augroup("lsp-attached", { clear = true }),
 			callback = function(event)
-				-- NOTE: Remember that lua is a real programming language, and as such it is possible
-				-- to define small helper and utility functions so you don't have to repeat yourself
-				-- many times.
-				--
-				-- In this case, we create a function that lets us more easily define mappings specific
-				-- for LSP related items. It sets the mode, buffer and description for us each time.
 				local map = function(keys, func, desc)
 					vim.keymap.set("n", keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
 				end
@@ -125,4 +136,5 @@ return {
 			end,
 		})
 	end,
+	a,
 }
