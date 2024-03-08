@@ -24,6 +24,8 @@ vim.o.splitright = true
 vim.o.termguicolors = true
 vim.o.winblend = 10
 vim.o.pumblend = 10
+vim.o.smartcase = true
+vim.o.ignorecase = true
 
 -- hightlight after yank
 local generic_augroup = vim.api.nvim_create_augroup("config_generic", { clear = true })
