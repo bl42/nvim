@@ -1,8 +1,7 @@
 return {
 	"neovim/nvim-lspconfig",
 	dependencies = {
-		{ "williamboman/mason.nvim", opts = {} },
-		"williamboman/mason-lspconfig.nvim",
+		-- Mason removed - using NixOS to manage LSPs instead!
 		{ "j-hui/fidget.nvim", opts = {} },
 
 		-- TODO: move cmp into new file
@@ -11,9 +10,6 @@ return {
 		"hrsh7th/cmp-path",
 		"hrsh7th/cmp-cmdline",
 		"hrsh7th/nvim-cmp",
-
-		"L3MON4D3/LuaSnip",
-		"saadparwaiz1/cmp_luasnip",
 	},
 
 	config = function()
@@ -21,49 +17,125 @@ return {
 		local cmp_lsp = require("cmp_nvim_lsp")
 		local capabilities = vim.tbl_deep_extend(
 			"force",
-			{},
 			vim.lsp.protocol.make_client_capabilities(),
 			cmp_lsp.default_capabilities()
 		)
 
-		require("mason-lspconfig").setup({
-			ensure_installed = {
-				"lua_ls",
-				"rust_analyzer",
-				"tsserver",
-				"tailwindcss",
-			},
-			handlers = {
-				function(server_name) -- default handler (optional)
-					require("lspconfig")[server_name].setup({
-						capabilities = capabilities,
-					})
-				end,
-				["tsserver"] = function()
-					require("lspconfig").tsserver.setup({
-						on_attach = function(client)
-							client.resolved_capabilities.document_formatting = false
-						end,
-					})
-				end,
-				["lua_ls"] = function()
-					require("lspconfig").lua_ls.setup({
-						capabilities = capabilities,
-						settings = {
-							Lua = {
-								diagnostics = {
-									globals = { "vim", "it", "describe", "before_each", "after_each" },
-								},
-							},
+		-- Configure LSPs using vim.lsp.config (Neovim 0.11+)
+
+		-- TypeScript/JavaScript (tsserver renamed to ts_ls)
+		vim.lsp.config.ts_ls = {
+			capabilities = capabilities,
+			on_attach = function(client)
+				-- Disable ts_ls formatting if you prefer prettier
+				client.server_capabilities.documentFormattingProvider = false
+			end,
+		}
+
+		-- Tailwind CSS
+		vim.lsp.config.tailwindcss = {
+			capabilities = capabilities,
+			filetypes = { "html", "css", "scss", "javascript", "javascriptreact", "typescript", "typescriptreact" },
+			settings = {
+				tailwindCSS = {
+					experimental = {
+						classRegex = {
+							{ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
+							{ "cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+							{ "cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
 						},
-					})
-				end,
+					},
+				},
 			},
+		}
+
+		-- Lua (for neovim config)
+		vim.lsp.config.lua_ls = {
+			capabilities = capabilities,
+			settings = {
+				Lua = {
+					diagnostics = {
+						globals = { "vim", "it", "describe", "before_each", "after_each" },
+					},
+				},
+			},
+		}
+
+		-- Rust
+		vim.lsp.config.rust_analyzer = {
+			capabilities = capabilities,
+		}
+
+		-- Python
+		vim.lsp.config.pyright = {
+			capabilities = capabilities,
+		}
+
+		-- Nix
+		vim.lsp.config.nil_ls = {
+			capabilities = capabilities,
+		}
+
+		-- Go
+		vim.lsp.config.gopls = {
+			capabilities = capabilities,
+		}
+
+		-- Bash
+		vim.lsp.config.bashls = {
+			capabilities = capabilities,
+		}
+
+		-- C/C++
+		vim.lsp.config.clangd = {
+			capabilities = capabilities,
+		}
+
+		-- HTML/CSS/JSON (from vscode-langservers-extracted)
+		vim.lsp.config.html = {
+			capabilities = capabilities,
+		}
+		vim.lsp.config.cssls = {
+			capabilities = capabilities,
+		}
+		vim.lsp.config.jsonls = {
+			capabilities = capabilities,
+		}
+
+		-- YAML
+		vim.lsp.config.yamlls = {
+			capabilities = capabilities,
+		}
+
+		-- Markdown
+		vim.lsp.config.marksman = {
+			capabilities = capabilities,
+		}
+
+		-- Enable all configured LSPs
+		vim.lsp.enable({
+			"ts_ls",
+			"tailwindcss",
+			"lua_ls",
+			"rust_analyzer",
+			"pyright",
+			"nil_ls",
+			"gopls",
+			"bashls",
+			"clangd",
+			"html",
+			"cssls",
+			"jsonls",
+			"yamlls",
+			"marksman",
 		})
 
-		local cmp_select = { behavior = cmp.SelectBehavior.Select }
-
 		cmp.setup({
+			snippet = {
+				expand = function(args)
+					vim.snippet.expand(args.body)
+				end,
+			},
 			window = {
 				completion = { -- rounded border; thin-style scrollbar
 					border = "single",
@@ -73,21 +145,14 @@ return {
 					-- other options
 				},
 			},
-			snippet = {
-				expand = function(args)
-					require("luasnip").lsp_expand(args.body) -- For `luasnip` users.
-				end,
-			},
 			mapping = cmp.mapping.preset.insert({
-				["<C-p>"] = cmp.mapping.select_prev_item(cmp_select),
-				["<C-n>"] = cmp.mapping.select_next_item(cmp_select),
+				["<C-p>"] = cmp.mapping.select_prev_item(),
+				["<C-n>"] = cmp.mapping.select_next_item(),
 				["<C-y>"] = cmp.mapping.confirm({ select = true }),
 				["<C-Space>"] = cmp.mapping.complete(),
 			}),
 			sources = cmp.config.sources({
 				{ name = "nvim_lsp" },
-				{ name = "luasnip" }, -- For luasnip users.
-				-- { name = "cmp_ai" },
 			}, {
 				{ name = "buffer" },
 			}),
@@ -103,6 +168,11 @@ return {
 				header = "",
 				prefix = "",
 			},
+		})
+
+		-- Configure hover to display with proper formatting
+		vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
+			border = "rounded",
 		})
 
 		vim.api.nvim_create_autocmd("LspAttach", {
@@ -122,6 +192,8 @@ return {
 				map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction")
 				map("K", vim.lsp.buf.hover, "Hover Documentation")
 				map("gD", vim.lsp.buf.declaration, "[G]oto [D]eclaration")
+				map("[d", vim.diagnostic.goto_prev, "Go to previous [D]iagnostic")
+				map("]d", vim.diagnostic.goto_next, "Go to next [D]iagnostic")
 
 				local client = vim.lsp.get_client_by_id(event.data.client_id)
 				if client and client.server_capabilities.documentHighlightProvider then
@@ -138,5 +210,4 @@ return {
 			end,
 		})
 	end,
-	a,
 }
